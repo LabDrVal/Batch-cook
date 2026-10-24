@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Batch Cook</title>
+<meta name="theme-color" content="#2f6b4f">
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#1f2421;--muted:#6b726d;--line:#e4e0d7;--accent:#2f6b4f;--accent-ink:#fff;--accent-soft:#e3efe8;
+--prot:#f6e3dc;--prot-ink:#8a3b22;--starch:#f5ecd2;--starch-ink:#7a5a10;--veg:#e1efdc;--veg-ink:#2f6020;
+--warn:#8a5200;--warn-bg:#fff3dc;--shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.05)}
+@media (prefers-color-scheme:dark){:root{--bg:#141715;--card:#1d211f;--ink:#e9ece9;--muted:#9aa29c;--line:#2e3430;--accent:#6fbf96;--accent-ink:#0f1a14;--accent-soft:#233a2e;
+--prot:#3a2620;--prot-ink:#f0b39c;--starch:#362e18;--starch-ink:#e9cc7d;--veg:#22331d;--veg-ink:#a9d896;--warn:#ffc46b;--warn-bg:#3a2d14;--shadow:none}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+button,select,input{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px 0}
+.wrap{max-width:920px;margin:0 auto}
+h1{font-size:20px;margin:0 0 8px;letter-spacing:-.01em}
+h1 span{color:var(--accent)}
+nav{display:flex;gap:4px}
+nav button{flex:1;border:0;background:none;padding:10px 4px;border-bottom:3px solid transparent;color:var(--muted);font-weight:600;cursor:pointer}
+nav button.on{color:var(--ink);border-color:var(--accent)}
+nav .badge{display:inline-block;min-width:20px;padding:0 6px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-size:12px;margin-left:4px}
+main{padding:14px 16px 40px}
+main.week{padding-bottom:calc(var(--pal-h,220px) + 24px)}
+.view{display:none}.view.on{display:block}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.tog{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer}
+.tog.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:14px}
+.stepper button{border:0;background:none;width:32px;height:32px;cursor:pointer;font-size:18px}
+.stepper span{padding:0 4px}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 12px;font-size:14px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.days{display:grid;gap:12px}
+@media(min-width:760px){.days{grid-template-columns:1fr 1fr}}
+.day{background:var(--card);border-radius:14px;box-shadow:var(--shadow);border:1px solid var(--line);padding:10px}
+.day h3{margin:0 0 8px;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+.day h3 small{color:var(--muted);font-weight:500;font-size:12px}
+.slots{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.slot{border:1.5px dashed var(--line);border-radius:10px;padding:8px;min-height:96px;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,background .15s}
+.slot.filled{border-style:solid}
+.slot.hot{border-color:var(--accent);background:var(--accent-soft)}
+body.selecting .slot{border-color:var(--accent);cursor:copy}
+.slot-h{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.slot-h select{font-size:12px;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:2px 4px;max-width:120px;text-transform:none;letter-spacing:0}
+.items{display:flex;flex-wrap:wrap;gap:4px}
+.hint{color:var(--muted);font-size:13px;margin:auto 0;text-align:center}
+.tag{display:inline-flex;align-items:center;gap:3px;border-radius:999px;padding:2px 4px 2px 8px;font-size:13px;font-weight:500}
+.tag button{border:0;background:none;padding:0 4px;cursor:pointer;opacity:.6;font-size:15px;line-height:1}
+.c-prot{background:var(--prot);color:var(--prot-ink)}.c-starch{background:var(--starch);color:var(--starch-ink)}.c-veg{background:var(--veg);color:var(--veg-ink)}
+.preview{font-size:12px;color:var(--accent);background:none;border:0;padding:0;text-align:left;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.palette{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.06);padding:8px 16px calc(10px + env(safe-area-inset-bottom))}
+.palette .ptabs{display:flex;gap:6px;margin-bottom:8px;align-items:center}
+.palette .ptabs button{border:0;background:var(--bg);border-radius:8px;padding:5px 10px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted)}
+.palette .ptabs button.on{background:var(--accent-soft);color:var(--accent)}
+.palette .ptabs .phint{margin-left:auto;font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;max-height:34vh;overflow:auto}
+.chip{touch-action:none;user-select:none;-webkit-user-select:none;border:0;border-radius:999px;padding:7px 12px;font-size:14px;font-weight:500;cursor:grab}
+.chip.sel{outline:2px solid var(--accent);outline-offset:2px}
+.chip.add{background:var(--bg);color:var(--muted);border:1px dashed var(--line)}
+.ghost{position:fixed;z-index:100;pointer-events:none;transform:translate(-50%,-130%) scale(1.08);box-shadow:0 8px 20px rgba(0,0,0,.2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:12px}
+.card h2{font-size:17px;margin:0 0 4px}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;font-size:13px;color:var(--muted)}
+.pill{background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:2px 10px;font-weight:600}
+.card h4{margin:12px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.card ul,.card ol{margin:0;padding-left:20px}
+.card li{margin:3px 0}
+.warn{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:8px 12px;font-size:14px;margin-top:10px}
+.tip{background:var(--accent-soft);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:12px}
+.tip ol{margin:6px 0 0;padding-left:20px}
+.empty{text-align:center;color:var(--muted);padding:40px 10px}
+.shop h3{font-size:15px;margin:16px 0 6px}
+.shop ul{list-style:none;padding:0;margin:0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.shop li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line);cursor:pointer}
+.shop li:first-child{border-top:0}
+.shop li input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.shop li .q{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.shop li.done .n{text-decoration:line-through;color:var(--muted)}
+.summary{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px}
+dialog{border:0;border-radius:16px;padding:18px;max-width:420px;width:calc(100% - 32px);background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+dialog h2{margin:0 0 12px;font-size:18px}
+dialog label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+dialog input,dialog select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.dlg-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.custom-list{margin-top:14px;border-top:1px solid var(--line);padding-top:10px;font-size:14px}
+.custom-list div{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+.toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:10px;font-size:14px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>🥡 Batch <span>Cook</span></h1>
+  <nav>
+    <button data-tab="week" class="on">Semaine</button>
+    <button data-tab="recipes">Recettes <span class="badge" id="bR">0</span></button>
+    <button data-tab="shop">Courses <span class="badge" id="bS">0</span></button>
+  </nav>
+</div></header>
+
+<main id="main" class="week"><div class="wrap">
+  <section class="view on" id="v-week">
+    <div class="toolbar">
+      <button class="tog" data-opt="midi">Midi</button>
+      <button class="tog" data-opt="soir">Soir</button>
+      <button class="tog" data-opt="weekend">Week-end</button>
+      <span class="stepper" title="Portions par boîte"><button data-pp="-1">−</button><span id="pp"></span><button data-pp="1">+</button></span>
+      <span class="spacer"></span>
+      <button class="btn" id="fill">🎲 Compléter</button>
+      <button class="btn" id="clear">Vider</button>
+    </div>
+    <div class="days" id="days"></div>
+  </section>
+  <section class="view" id="v-recipes"></section>
+  <section class="view" id="v-shop"></section>
+</div></main>
+
+<div class="palette" id="palette">
+  <div class="wrap">
+    <div class="ptabs" id="ptabs"></div>
+    <div class="chips" id="chips"></div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" id="cform">
+    <h2>Ajouter un aliment</h2>
+    <label>Nom</label><input name="n" required maxlength="30" placeholder="ex. Cabillaud">
+    <div class="row">
+      <div><label>Emoji</label><input name="e" maxlength="4" placeholder="🐟"></div>
+      <div><label>Catégorie</label><select name="c"><option value="prot">Protéine</option><option value="starch">Féculent</option><option value="veg">Légume</option></select></div>
+    </div>
+    <div class="row">
+      <div><label>Qté / portion</label><input name="q" type="number" min="0.1" step="any" value="120" required></div>
+      <div><label>Unité</label><select name="u"><option value="g">g</option><option value="pc">pièce(s)</option></select></div>
+    </div>
+    <label>Rayon</label><select name="r"></select>
+    <div class="dlg-actions"><button class="btn" value="cancel" formnovalidate>Annuler</button><button class="btn primary" value="ok">Ajouter</button></div>
+    <div class="custom-list" id="clist"></div>
+  </form>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Données ---------- */
+const DAYS=[["lun","Lundi",1],["mar","Mardi",2],["mer","Mercredi",3],["jeu","Jeudi",4],["ven","Vendredi",5],["sam","Samedi",6],["dim","Dimanche",7]];
+const MEALS=[["midi","Midi"],["soir","Soir"]];
+const RAYONS={boucherie:"🥩 Boucherie / Poissonnerie",frais:"🧀 Rayon frais",fl:"🥬 Fruits & légumes",epicerie:"🥫 Épicerie",surgeles:"❄️ Surgelés",placard:"🧂 Placard — vérifie ce que tu as déjà"};
+const CATS={prot:"Protéines",starch:"Féculents",veg:"Légumes"};
+
+const BASE={
+ poulet:{n:"Poulet",e:"🍗",c:"prot",q:130,u:"g",r:"boucherie",keep:3,step:q=>`Coupez ${q} de blanc de poulet en dés et faites-les dorer 6–8 min à feu vif dans un filet d'huile, jusqu'à ce qu'ils ne soient plus rosés à cœur.`},
+ dinde:{n:"Dinde",e:"🦃",c:"prot",q:130,u:"g",r:"boucherie",keep:3,step:q=>`Émincez ${q} d'escalope de dinde en lanières et saisissez-les 5–6 min à feu vif dans un filet d'huile.`},
+ boeuf:{n:"Bœuf haché",e:"🥩",c:"prot",q:120,u:"g",r:"boucherie",keep:3,step:q=>`Faites revenir ${q} de bœuf haché 5–6 min en l'émiettant à la spatule, puis égouttez l'excès de gras.`},
+ porc:{n:"Filet mignon",e:"🐖",c:"prot",q:130,u:"g",r:"boucherie",keep:3,step:q=>`Coupez ${q} de filet mignon en médaillons, saisissez-les 3 min par face puis finissez 5 min à couvert sur feu doux.`},
+ saumon:{n:"Saumon",e:"🐟",c:"prot",q:130,u:"g",r:"boucherie",keep:2,step:q=>`Faites cuire ${q} de pavés de saumon au four 12 min à 200 °C, puis détaillez-les en gros morceaux.`},
+ crevettes:{n:"Crevettes",e:"🦐",c:"prot",q:120,u:"g",r:"surgeles",keep:2,step:q=>`Décongelez ${q} de crevettes décortiquées, épongez-les et saisissez-les 2–3 min à feu vif, juste jusqu'à ce qu'elles soient roses.`},
+ thon:{n:"Thon",e:"🥫",c:"prot",q:100,u:"g",r:"epicerie",keep:3,step:q=>`Égouttez ${q} de thon au naturel (poids égoutté). Il s'ajoute à la fin, sans cuisson.`},
+ oeufs:{n:"Œufs",e:"🥚",c:"prot",q:2,u:"pc",r:"frais",keep:3,nomix:true,step:q=>`Plongez ${q} œufs dans l'eau bouillante 9 min, refroidissez-les à l'eau froide et écalez-les. Mettez-les entiers dans les boîtes, à couper au moment de manger.`},
+ tofu:{n:"Tofu",e:"🧊",c:"prot",q:120,u:"g",r:"frais",keep:3,step:q=>`Pressez ${q} de tofu ferme dans un torchon 5 min, coupez-le en cubes et faites-les dorer 8 min sur toutes les faces.`},
+ poischiches:{n:"Pois chiches",e:"🫘",c:"prot",q:120,u:"g",r:"epicerie",keep:3,step:q=>`Rincez et égouttez ${q} de pois chiches cuits, puis faites-les rôtir 5 min à la poêle.`},
+ lentilles:{n:"Lentilles corail",e:"🟠",c:"prot",q:60,u:"g",r:"epicerie",keep:3,step:q=>`Rincez ${q} de lentilles corail et faites-les cuire 12 min dans 3 fois leur volume d'eau, jusqu'à ce qu'elles soient fondantes.`},
+
+ riz:{n:"Riz",e:"🍚",c:"starch",q:75,u:"g",r:"epicerie",step:q=>`Rincez ${q} de riz et faites-le cuire 11–12 min à l'eau bouillante salée. Égouttez et étalez-le sur une plaque pour qu'il refroidisse vite.`},
+ pates:{n:"Pâtes",e:"🍝",c:"starch",q:80,u:"g",r:"epicerie",step:q=>`Faites cuire ${q} de pâtes 1–2 min de moins que le temps indiqué : elles finiront de cuire au réchauffage. Égouttez et ajoutez un filet d'huile.`},
+ quinoa:{n:"Quinoa",e:"🌾",c:"starch",q:70,u:"g",r:"epicerie",step:q=>`Rincez ${q} de quinoa, faites-le cuire 12 min dans 2 volumes d'eau salée puis laissez gonfler 5 min à couvert.`},
+ pdt:{n:"Pommes de terre",e:"🥔",c:"starch",q:250,u:"g",r:"fl",step:q=>`Préchauffez le four à 210 °C. Coupez ${q} de pommes de terre en cubes, mélangez avec huile, sel et poivre, et rôtissez 30 min en remuant à mi-cuisson.`},
+ patate:{n:"Patate douce",e:"🍠",c:"starch",q:250,u:"g",r:"fl",step:q=>`Préchauffez le four à 210 °C. Coupez ${q} de patate douce en cubes, huilez, salez et rôtissez 25 min.`},
+ semoule:{n:"Semoule",e:"🥣",c:"starch",q:70,u:"g",r:"epicerie",step:q=>`Versez sur ${q} de semoule le même volume d'eau bouillante salée, couvrez 5 min puis égrainez à la fourchette avec un filet d'huile.`},
+ boulgour:{n:"Boulgour",e:"🌰",c:"starch",q:70,u:"g",r:"epicerie",step:q=>`Faites cuire ${q} de boulgour 10 min dans 2 volumes d'eau salée, puis laissez reposer 5 min à couvert.`},
+ nouilles:{n:"Nouilles de riz",e:"🍜",c:"starch",q:70,u:"g",r:"epicerie",step:q=>`Réhydratez ${q} de nouilles de riz selon le paquet, rincez-les à l'eau froide et mélangez avec un filet d'huile pour qu'elles ne collent pas.`},
+
+ courgette:{n:"Courgette",e:"🥒",c:"veg",q:150,u:"g",r:"fl",cut:"en demi-rondelles",t:5},
+ brocoli:{n:"Brocoli",e:"🥦",c:"veg",q:150,u:"g",r:"fl",cut:"en petits bouquets",t:7},
+ poivron:{n:"Poivron",e:"🫑",c:"veg",q:100,u:"g",r:"fl",cut:"en lanières",t:6},
+ carotte:{n:"Carotte",e:"🥕",c:"veg",q:100,u:"g",r:"fl",cut:"en fines rondelles",t:10},
+ epinards:{n:"Épinards",e:"🥬",c:"veg",q:80,u:"g",r:"fl",cut:"lavés et essorés",t:2},
+ champignons:{n:"Champignons",e:"🍄",c:"veg",q:100,u:"g",r:"fl",cut:"en lamelles",t:6},
+ haricots:{n:"Haricots verts",e:"🫛",c:"veg",q:150,u:"g",r:"surgeles",cut:"coupés en deux",t:8},
+ aubergine:{n:"Aubergine",e:"🍆",c:"veg",q:150,u:"g",r:"fl",cut:"en dés",t:10},
+ tomate:{n:"Tomate",e:"🍅",c:"veg",q:120,u:"g",r:"fl",cut:"en dés",t:3},
+ choufleur:{n:"Chou-fleur",e:"🤍",c:"veg",q:150,u:"g",r:"fl",cut:"en petits bouquets",t:8},
+ petitspois:{n:"Petits pois",e:"🟢",c:"veg",q:80,u:"g",r:"surgeles",cut:"surgelés, sans décongeler",t:4},
+};
+
+const STYLES={
+ curry:{n:"Curry coco",adj:"curry coco",x:[["Oignon",.5,"pc","fl"],["Ail",1,"gousse","fl"],["Lait de coco",80,"ml","epicerie"],["Curry en poudre",1,"cac","placard"]],
+  sauce:m=>`Dans la même sauteuse, faites revenir l'oignon et l'ail émincés 3 min, ajoutez le curry et remuez 1 min, puis versez le lait de coco. Laissez frémir 5 min.${m?` Remettez-y ${m}, mélangez et laissez mijoter 2–3 min.`:""}`},
+ provencal:{n:"Provençal",adj:"à la provençale",x:[["Oignon",.5,"pc","fl"],["Ail",1,"gousse","fl"],["Tomates concassées",100,"g","epicerie"],["Herbes de Provence",.5,"cac","placard"]],
+  sauce:m=>`Faites revenir l'oignon et l'ail émincés 3 min dans un filet d'huile d'olive, ajoutez les tomates concassées et les herbes, puis laissez compoter 10 min à feu doux.${m?` Remettez-y ${m} et mélangez 2 min.`:""}`},
+ asiatique:{n:"Sauté asiatique",adj:"façon wok",x:[["Sauce soja",1,"cas","placard"],["Miel",.5,"cac","placard"],["Gingembre frais",5,"g","fl"],["Ail",1,"gousse","fl"],["Ciboule",1,"tige","fl"],["Graines de sésame",.5,"cac","placard"]],
+  sauce:m=>`Mélangez la sauce soja, le miel, le gingembre râpé et l'ail écrasé avec 2 c. à soupe d'eau. ${m?`Remettez ${m} dans la sauteuse bien chaude, `:"Faites chauffer la sauteuse, "}versez la sauce et faites sauter 2 min. Parsemez de ciboule ciselée et de sésame.`},
+ citron:{n:"Citron & herbes",adj:"citron & herbes",x:[["Citron",.5,"pc","fl"],["Persil ou coriandre",.2,"botte","fl"],["Ail",1,"gousse","fl"]],
+  sauce:m=>`Mélangez le jus et le zeste du citron, l'herbe ciselée, l'ail écrasé, 1 c. à soupe d'huile d'olive, sel et poivre.${m?` Versez sur ${m} et mélangez délicatement.`:""} Astuce : gardez un peu de sauce à part pour en remettre au moment de manger.`},
+ moutarde:{n:"Crème moutarde",adj:"crème moutarde",x:[["Échalote",.5,"pc","fl"],["Crème fraîche légère",50,"ml","frais"],["Moutarde",1,"cac","placard"]],
+  sauce:m=>`Faites fondre l'échalote émincée 2 min, ajoutez la crème et la moutarde, puis laissez réduire 3 min à feu doux.${m?` Remettez-y ${m} et enrobez bien.`:""}`},
+ texmex:{n:"Tex-Mex",adj:"tex-mex",x:[["Oignon",.5,"pc","fl"],["Tomates concassées",60,"g","epicerie"],["Maïs en boîte",40,"g","epicerie"],["Citron vert",.25,"pc","fl"],["Épices fajitas (ou cumin + paprika)",1,"cac","placard"]],
+  sauce:m=>`Faites revenir l'oignon émincé 3 min, ajoutez les épices 1 min, puis les tomates concassées et le maïs égoutté. Laissez mijoter 5 min.${m?` Remettez-y ${m}.`:""} Un trait de citron vert juste avant de fermer les boîtes.`},
+};
+
+/* ---------- État ---------- */
+const KEY="batchcook.v1";
+let S=load()||{slots:{"lun-midi":{items:["poulet","riz","courgette"],style:"auto"}},midi:true,soir:true,weekend:false,pp:1,custom:[],checked:{},tab:"week",ptab:"prot"};
+function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+function ing(id){
+  if(BASE[id])return {id,...BASE[id]};
+  const c=S.custom.find(x=>x.id===id); if(!c)return null;
+  const g={id,...c,keep:3,cut:"en morceaux",t:6};
+  if(c.c==="prot")g.step=q=>`Faites cuire ${q} de ${c.n.toLowerCase()} à la poêle avec un filet d'huile, jusqu'à cuisson complète à cœur.`;
+  if(c.c==="starch")g.step=q=>`Faites cuire ${q} de ${c.n.toLowerCase()} selon les indications du paquet.`;
+  return g;
+}
+function allIds(){return [...Object.keys(BASE),...S.custom.map(c=>c.id)]}
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const num=n=>String(Math.round(n*100)/100).replace(".",",");
+
+function fmt(q,u,shop){
+  if(q==null)return "";
+  switch(u){
+    case "g":{q=Math.ceil(q/10)*10;return q>=1000?num(Math.round(q/100)/10)+" kg":q+" g"}
+    case "ml":{q=Math.ceil(q/10)*10;return q>=1000?num(Math.round(q/100)/10)+" L":q+" ml"}
+    case "pc":{const n=shop?Math.ceil(q):Math.ceil(q*2)/2;return shop?"× "+n:num(n)}
+    case "gousse":{const n=Math.ceil(q);return n+(n>1?" gousses":" gousse")}
+    case "cac":return num(Math.ceil(q*2)/2)+" c. à café";
+    case "cas":return num(Math.ceil(q*2)/2)+" c. à soupe";
+    case "botte":{const n=shop?Math.ceil(q):Math.ceil(q*4)/4;return num(n)+(n>1?" bottes":" botte")}
+    case "tige":{const n=Math.ceil(q);return n+(n>1?" tiges":" tige")}
+  }
+  return num(q)+" "+u;
+}
+
+/* ---------- Génération de recette ---------- */
+function hash(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)}
+function resolveStyle(items,style){
+  if(style&&style!=="auto"&&STYLES[style])return style;
+  const has=id=>items.includes(id);
+  if(has("nouilles")||has("tofu")||has("crevettes"))return "asiatique";
+  if(has("lentilles")||has("poischiches"))return "curry";
+  if(has("saumon")||has("thon"))return "citron";
+  if(has("pates")&&(has("tomate")||has("aubergine")||has("boeuf")))return "provencal";
+  if(has("boeuf")&&(has("poivron")||has("riz")))return "texmex";
+  const keys=Object.keys(STYLES);return keys[hash(items.slice().sort().join())%keys.length];
+}
+function lowerList(arr){const a=arr.map(x=>x.toLowerCase());return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" et "+a.at(-1)}
+
+function buildRecipe(items,styleId,portions){
+  const L=items.map(ing).filter(Boolean);
+  const P=L.filter(x=>x.c==="prot"),F=L.filter(x=>x.c==="starch"),V=L.filter(x=>x.c==="veg");
+  const st=STYLES[styleId];
+  const title=[(P.length?P.map(x=>x.n).join(" & ")+" ":"")+st.adj,V.map(x=>x.n).join(", "),F.map(x=>x.n).join(", ")].filter(Boolean).join(" · ");
+  const ings=[...L.map(x=>({n:x.n,q:x.q*portions,u:x.u,r:x.r})),...st.x.map(([n,q,u,r])=>({n,q:q*portions,u,r}))];
+  const steps=[];
+  F.forEach(f=>steps.push(f.step?f.step(fmt(f.q*portions,f.u)):`Faites cuire ${fmt(f.q*portions,f.u)} de ${f.n.toLowerCase()}.`));
+  if(V.length){
+    steps.push(`Préparez les légumes : ${V.map(v=>`${fmt(v.q*portions,v.u)} de ${v.n.toLowerCase()} ${v.cut}`).join(" ; ")}.`);
+    const so=V.slice().sort((a,b)=>b.t-a.t);
+    steps.push(`Dans une grande sauteuse, faites chauffer un filet d'huile et faites sauter les légumes à feu moyen-vif en commençant par les plus longs à cuire : ${so.map(v=>`${v.n.toLowerCase()} (${v.t} min)`).join(", puis ")}. Salez, poivrez et réservez.`);
+  }
+  P.forEach(p=>steps.push(p.step?p.step(fmt(p.q*portions,p.u)):`Faites cuire ${fmt(p.q*portions,p.u)} de ${p.n.toLowerCase()}.`));
+  const mix=[...P.filter(p=>!p.nomix).map(p=>p.n),...(V.length?["les légumes"]:[])];
+  steps.push(st.sauce(mix.length?lowerList(mix):""));
+  steps.push(`Laissez refroidir (2 h max à température ambiante), puis répartissez ${F.length?lowerList(F.map(f=>f.n))+" et ":""}la préparation dans ${portions} boîte${portions>1?"s":""}. Fermez et mettez au frigo.`);
+  const keep=Math.min(3,...L.map(x=>x.keep||3));
+  return {title,ings,steps,keep,hasFish:L.some(x=>x.keep===2)};
+}
+
+function visibleSlots(){
+  const days=DAYS.filter(d=>S.weekend||d[2]<=5),meals=MEALS.filter(m=>S[m[0]]);
+  const out=[];days.forEach(d=>meals.forEach(m=>out.push({key:d[0]+"-"+m[0],day:d,meal:m})));return out;
+}
+function groups(){
+  const map=new Map();
+  visibleSlots().forEach(s=>{
+    const sl=S.slots[s.key];if(!sl||!sl.items.length)return;
+    const style=resolveStyle(sl.items,sl.style);
+    const k=sl.items.slice().sort().join("+")+"|"+style;
+    if(!map.has(k))map.set(k,{items:sl.items.slice(),style,slots:[]});
+    map.get(k).slots.push(s);
+  });
+  return [...map.values()].map(g=>({...g,recipe:buildRecipe(g.items,g.style,g.slots.length*S.pp)}));
+}
+
+/* ---------- Rendu : semaine ---------- */
+const $=s=>document.querySelector(s);
+let selected=null;
+
+function renderWeek(){
+  document.querySelectorAll("[data-opt]").forEach(b=>b.classList.toggle("on",!!S[b.dataset.opt]));
+  $("#pp").textContent=S.pp+" portion"+(S.pp>1?"s":"")+" / boîte";
+  const days=DAYS.filter(d=>S.weekend||d[2]<=5),meals=MEALS.filter(m=>S[m[0]]);
+  $("#days").innerHTML=days.map(d=>{
+    const n=meals.filter(m=>S.slots[d[0]+"-"+m[0]]?.items.length).length;
+    return `<div class="day"><h3>${d[1]}<small>${n?n+" boîte"+(n>1?"s":""):""}</small></h3><div class="slots">${meals.map(m=>slotHTML(d,m)).join("")}</div></div>`;
+  }).join("")||`<div class="empty">Active au moins « Midi » ou « Soir ».</div>`;
+  updateBadges();
+}
+function slotHTML(d,m){
+  const key=d[0]+"-"+m[0],sl=S.slots[key]||{items:[],style:"auto"};
+  const items=sl.items.map(ing).filter(Boolean);
+  const st=items.length?resolveStyle(sl.items,sl.style):null;
+  const opts=`<option value="auto"${sl.style==="auto"?" selected":""}>Auto${st&&sl.style==="auto"?" ("+STYLES[st].n+")":""}</option>`+Object.entries(STYLES).map(([k,v])=>`<option value="${k}"${sl.style===k?" selected":""}>${v.n}</option>`).join("");
+  let warn="";
+  if(items.length){const keep=Math.min(3,...items.map(x=>x.keep||3));if(d[2]>keep)warn=" ❄️";}
+  return `<div class="slot${items.length?" filled":""}" data-slot="${key}">
+    <div class="slot-h"><span>${m[1]}${warn}</span>${items.length?`<select data-style="${key}" aria-label="Style">${opts}</select>`:""}</div>
+    ${items.length?`<div class="items">${items.map(x=>`<span class="tag c-${x.c}">${x.e||""} ${esc(x.n)}<button data-rm="${key}|${x.id}" aria-label="Retirer">×</button></span>`).join("")}</div>
+      <button class="preview" data-goto="${key}">Voir la recette →</button>`:`<div class="hint">Glisse des aliments ici</div>`}
+  </div>`;
+}
+
+function renderPalette(){
+  $("#ptabs").innerHTML=Object.entries(CATS).map(([k,v])=>`<button data-ptab="${k}" class="${S.ptab===k?"on":""}">${v}</button>`).join("")+`<span class="phint">Glisse ou touche</span>`;
+  const ids=allIds().filter(id=>ing(id).c===S.ptab);
+  $("#chips").innerHTML=ids.map(id=>{const x=ing(id);return `<button class="chip c-${x.c}${selected===id?" sel":""}" data-id="${id}">${x.e||""} ${esc(x.n)}</button>`}).join("")+`<button class="chip add" data-add="${S.ptab}">＋ Autre</button>`;
+  document.querySelectorAll(".chip[data-id]").forEach(c=>c.addEventListener("pointerdown",onChipDown));
+  requestAnimationFrame(()=>document.documentElement.style.setProperty("--pal-h",$("#palette").offsetHeight+"px"));
+}
+
+function addTo(key,id){
+  const sl=S.slots[key]||(S.slots[key]={items:[],style:"auto"});
+  if(sl.items.includes(id)){toast("Déjà dans cette case");return}
+  sl.items.push(id);save();renderWeek();
+  const el=document.querySelector(`[data-slot="${key}"]`);if(el){el.classList.add("hot");setTimeout(()=>el.classList.remove("hot"),300)}
+}
+
+/* ---------- Glisser-déposer (souris + tactile) ---------- */
+let drag=null,raf=null;
+function onChipDown(e){
+  const el=e.currentTarget;drag={id:el.dataset.id,x:e.clientX,y:e.clientY,el,moving:false,ghost:null,vy:0};
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+}
+document.addEventListener("pointermove",e=>{
+  if(!drag)return;
+  if(!drag.moving&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){
+    drag.moving=true;drag.ghost=drag.el.cloneNode(true);drag.ghost.classList.add("ghost");document.body.appendChild(drag.ghost);
+    raf=requestAnimationFrame(autoScroll);
+  }
+  if(!drag.moving)return;
+  drag.ghost.style.left=e.clientX+"px";drag.ghost.style.top=e.clientY+"px";
+  const palTop=$("#palette").getBoundingClientRect().top;
+  drag.vy=e.clientY<110?-10:(e.clientY>palTop-50&&e.clientY<palTop+20?10:0);
+  document.querySelectorAll(".slot.hot").forEach(s=>s.classList.remove("hot"));
+  const t=document.elementFromPoint(e.clientX,e.clientY)?.closest(".slot");if(t)t.classList.add("hot");
+  drag.lx=e.clientX;drag.ly=e.clientY;
+});
+function autoScroll(){if(!drag||!drag.moving)return;if(drag.vy)window.scrollBy(0,drag.vy);raf=requestAnimationFrame(autoScroll)}
+function endDrag(e,cancel){
+  if(!drag)return;const d=drag;drag=null;cancelAnimationFrame(raf);
+  if(d.ghost)d.ghost.remove();
+  document.querySelectorAll(".slot.hot").forEach(s=>s.classList.remove("hot"));
+  if(cancel)return;
+  if(d.moving){
+    const t=document.elementFromPoint(e.clientX,e.clientY)?.closest(".slot");
+    if(t)addTo(t.dataset.slot,d.id);
+  }else{
+    selected=selected===d.id?null:d.id;document.body.classList.toggle("selecting",!!selected);renderPalette();
+    if(selected)toast(`Touche une case pour ajouter ${ing(selected).n}`);
+  }
+}
+document.addEventListener("pointerup",e=>endDrag(e,false));
+document.addEventListener("pointercancel",e=>endDrag(e,true));
+
+/* ---------- Événements semaine ---------- */
+$("#days").addEventListener("click",e=>{
+  const rm=e.target.closest("[data-rm]");
+  if(rm){const[k,id]=rm.dataset.rm.split("|");const sl=S.slots[k];sl.items=sl.items.filter(x=>x!==id);if(!sl.items.length)delete S.slots[k];save();renderWeek();return}
+  const go=e.target.closest("[data-goto]");
+  if(go){setTab("recipes");setTimeout(()=>document.querySelector(`[data-has~="${go.dataset.goto}"]`)?.scrollIntoView({behavior:"smooth",block:"start"}),50);return}
+  if(e.target.closest("select,button"))return;
+  const slot=e.target.closest(".slot");if(slot&&selected)addTo(slot.dataset.slot,selected);
+});
+$("#days").addEventListener("change",e=>{const s=e.target.closest("[data-style]");if(s){S.slots[s.dataset.style].style=s.value;save();renderWeek()}});
+document.querySelectorAll("[data-opt]").forEach(b=>b.onclick=()=>{S[b.dataset.opt]=!S[b.dataset.opt];save();renderWeek()});
+document.querySelectorAll("[data-pp]").forEach(b=>b.onclick=()=>{S.pp=Math.max(1,Math.min(6,S.pp+ +b.dataset.pp));save();renderWeek()});
+$("#clear").onclick=()=>{if(confirm("Vider toute la semaine ?")){S.slots={};S.checked={};save();renderWeek()}};
+$("#fill").onclick=()=>{
+  const by=c=>allIds().filter(id=>ing(id).c===c),pick=a=>a[Math.floor(Math.random()*a.length)];
+  let n=0;visibleSlots().forEach(s=>{
+    if(S.slots[s.key]?.items.length)return;
+    const v=by("veg"),v1=pick(v);let v2=pick(v);const items=[pick(by("prot")),pick(by("starch")),v1];
+    if(Math.random()<.5&&v2!==v1)items.push(v2);
+    S.slots[s.key]={items,style:"auto"};n++;
+  });
+  save();renderWeek();toast(n?`${n} case${n>1?"s":""} remplie${n>1?"s":""} — modifie à ta guise`:"Toutes les cases sont déjà remplies");
+};
+$("#ptabs").addEventListener("click",e=>{const b=e.target.closest("[data-ptab]");if(b){S.ptab=b.dataset.ptab;save();renderPalette()}});
+$("#chips").addEventListener("click",e=>{const b=e.target.closest("[data-add]");if(b)openDialog(b.dataset.add)});
+
+/* ---------- Recettes ---------- */
+function slotLabel(s){return s.day[1].slice(0,3)+". "+s.meal[1].toLowerCase()}
+function renderRecipes(){
+  const G=groups();
+  if(!G.length){$("#v-recipes").innerHTML=`<div class="empty">Aucune boîte pour l'instant.<br>Remplis des cases dans l'onglet Semaine.</div>`;return}
+  const tip=G.length>1?`<div class="tip"><b>Ordre conseillé pour dimanche</b><ol>
+    <li>Allume le four et enfourne tout ce qui rôtit (pommes de terre, patate douce, saumon).</li>
+    <li>Lance tous les féculents en même temps.</li><li>Découpe tous les légumes d'un coup.</li>
+    <li>Enchaîne les poêlées : légumes, puis protéines, puis sauces — sans laver la sauteuse entre deux.</li>
+    <li>Laisse refroidir et remplis les boîtes.</li></ol></div>`:"";
+  $("#v-recipes").innerHTML=tip+G.map(g=>{
+    const r=g.recipe,n=g.slots.length,freeze=g.slots.filter(s=>s.day[2]>r.keep);
+    return `<article class="card" data-has="${g.slots.map(s=>s.key).join(" ")}">
+      <h2>${esc(r.title)}</h2>
+      <div class="meta"><span class="pill">${n} boîte${n>1?"s":""} · ${n*S.pp} portion${n*S.pp>1?"s":""}</span><span>${g.slots.map(slotLabel).join(", ")}</span></div>
+      <h4>Ingrédients</h4><ul>${r.ings.map(i=>`<li>${esc(i.n)} — ${fmt(i.q,i.u)}</li>`).join("")}<li>Huile, sel, poivre</li></ul>
+      <h4>Étapes</h4><ol>${r.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol>
+      ${freeze.length?`<div class="warn">❄️ ${r.hasFish?"Poisson/fruits de mer : 2 jours max au frigo.":"Au-delà de 3 jours au frigo, mieux vaut congeler."} Congèle dimanche la boîte de <b>${freeze.map(slotLabel).join(", ")}</b> et passe-la au frigo la veille.</div>`:""}
+    </article>`;
+  }).join("");
+}
+
+/* ---------- Courses ---------- */
+function shopping(){
+  const m=new Map();
+  groups().forEach(g=>g.recipe.ings.forEach(i=>{
+    const k=i.n+"|"+i.u;if(!m.has(k))m.set(k,{...i,q:0});m.get(k).q+=i.q;
+  }));
+  ["Huile d'olive","Sel & poivre"].forEach(n=>m.set(n+"|",{n,q:null,u:"",r:"placard"}));
+  return m;
+}
+function renderShop(){
+  const G=groups();
+  if(!G.length){$("#v-shop").innerHTML=`<div class="empty">Ta liste de courses apparaîtra ici dès que tu auras rempli des cases.</div>`;return}
+  const m=shopping(),boxes=G.reduce((a,g)=>a+g.slots.length,0);
+  let html=`<div class="summary"><span class="pill">${boxes} boîte${boxes>1?"s":""} · ${G.length} recette${G.length>1?"s":""}</span><span class="spacer"></span>
+    <button class="btn" id="uncheck">Tout décocher</button><button class="btn primary" id="share">Partager la liste</button></div>`;
+  Object.entries(RAYONS).forEach(([r,label])=>{
+    const items=[...m.entries()].filter(([,i])=>i.r===r).sort((a,b)=>a[1].n.localeCompare(b[1].n,"fr"));
+    if(!items.length)return;
+    html+=`<div class="shop"><h3>${label}</h3><ul>${items.map(([k,i])=>`<li data-k="${esc(k)}" class="${S.checked[k]?"done":""}"><input type="checkbox"${S.checked[k]?" checked":""} tabindex="-1"><span class="n">${esc(i.n)}</span><span class="q">${fmt(i.q,i.u,true)}</span></li>`).join("")}</ul></div>`;
+  });
+  $("#v-shop").innerHTML=html;
+  $("#v-shop").querySelectorAll("li[data-k]").forEach(li=>li.onclick=e=>{
+    const k=li.dataset.k;S.checked[k]=!S.checked[k];if(!S.checked[k])delete S.checked[k];save();
+    li.classList.toggle("done",!!S.checked[k]);li.querySelector("input").checked=!!S.checked[k];updateBadges();
+  });
+  $("#uncheck").onclick=()=>{S.checked={};save();renderShop();updateBadges()};
+  $("#share").onclick=shareList;
+}
+async function shareList(){
+  const m=shopping();let txt="🛒 Courses batch cooking\n";
+  Object.entries(RAYONS).forEach(([r,label])=>{
+    const items=[...m.entries()].filter(([k,i])=>i.r===r&&!S.checked[k]);
+    if(items.length)txt+=`\n${label}\n`+items.map(([,i])=>`☐ ${i.n}${i.q!=null?" — "+fmt(i.q,i.u,true):""}`).join("\n")+"\n";
+  });
+  try{if(navigator.share){await navigator.share({text:txt});return}}catch(e){if(e.name==="AbortError")return}
+  try{await navigator.clipboard.writeText(txt);toast("Liste copiée 📋")}catch(e){prompt("Copie ta liste :",txt)}
+}
+
+function updateBadges(){
+  const G=groups();$("#bR").textContent=G.length;
+  const m=shopping();let left=0;G.length&&m.forEach((_,k)=>{if(!S.checked[k])left++});$("#bS").textContent=left;
+}
+
+/* ---------- Onglets ---------- */
+function setTab(t){
+  S.tab=t;save();
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id==="v-"+t));
+  $("#palette").style.display=t==="week"?"":"none";$("#main").classList.toggle("week",t==="week");
+  if(t!=="week"){selected=null;document.body.classList.remove("selecting")}
+  if(t==="week"){renderWeek();renderPalette()}if(t==="recipes")renderRecipes();if(t==="shop")renderShop();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+
+/* ---------- Aliments perso ---------- */
+const dlg=$("#dlg"),form=$("#cform");
+form.r.innerHTML=Object.entries(RAYONS).filter(([k])=>k!=="placard").map(([k,v])=>`<option value="${k}">${v}</option>`).join("");
+function openDialog(cat){
+  form.reset();form.c.value=cat;form.r.value=cat==="veg"?"fl":cat==="prot"?"boucherie":"epicerie";
+  $("#clist").innerHTML=S.custom.length?`<b>Mes aliments</b>`+S.custom.map(c=>`<div><span>${esc(c.e||"")} ${esc(c.n)}</span><button type="button" class="btn" data-del="${c.id}">Supprimer</button></div>`).join(""):"";
+  dlg.showModal();
+}
+$("#clist").addEventListener("click",e=>{const b=e.target.closest("[data-del]");if(!b)return;const id=b.dataset.del;
+  S.custom=S.custom.filter(c=>c.id!==id);Object.values(S.slots).forEach(s=>s.items=s.items.filter(x=>x!==id));save();dlg.close();renderWeek();renderPalette()});
+dlg.addEventListener("close",()=>{
+  if(dlg.returnValue!=="ok")return;
+  const f=new FormData(form),n=f.get("n").trim();if(!n)return;
+  S.custom.push({id:"c"+Date.now(),n,e:f.get("e").trim(),c:f.get("c"),q:+f.get("q")||100,u:f.get("u"),r:f.get("r")});
+  S.ptab=f.get("c");save();renderPalette();toast(`${n} ajouté`);
+});
+
+/* ---------- Divers ---------- */
+let tt;function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),1800)}
+window.addEventListener("resize",()=>document.documentElement.style.setProperty("--pal-h",$("#palette").offsetHeight+"px"));
+setTab(S.tab||"week");
+</script>
+</body>
+</html>
